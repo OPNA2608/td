@@ -46,16 +46,11 @@ set(TDDB_SOURCE
   td/db/detail/RawSqliteDb.h
 )
 
-add_library(tddb STATIC ${TDDB_SOURCE})
-target_include_directories(tddb PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_link_libraries(tddb PUBLIC tdactor tdutils PRIVATE tdsqlite)
+add_library(tddb OBJECT ${TDDB_SOURCE} $<TARGET_OBJECTS:tdactor> $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tdsqlite>)
+target_include_directories(tddb PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<TARGET_PROPERTY:tdactor,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdsqlite,INCLUDE_DIRECTORIES>)
 
 if (NOT CMAKE_CROSSCOMPILING)
-  add_executable(binlog_dump td/db/binlog/binlog_dump.cpp)
-  target_link_libraries(binlog_dump PRIVATE tddb)
+  add_executable(binlog_dump td/db/binlog/binlog_dump.cpp $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tddb>)
+  target_include_directories(binlog_dump PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tddb,INCLUDE_DIRECTORIES>)
+  target_link_libraries(binlog_dump PRIVATE $<TARGET_PROPERTY:tdutils,LINK_LIBRARIES>)
 endif()
-
-install(TARGETS tddb EXPORT TdStaticTargets
-  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-)

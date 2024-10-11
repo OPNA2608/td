@@ -139,9 +139,8 @@ if (NOT CMAKE_CROSSCOMPILING)
     DEPENDS tl-parser ${CMAKE_CURRENT_SOURCE_DIR}/scheme/mtproto_api.tl ${CMAKE_CURRENT_SOURCE_DIR}/scheme/secret_api.tl ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl ${CMAKE_CURRENT_SOURCE_DIR}/scheme/telegram_api.tl
   )
 
-  add_library(tl_writer_cpp STATIC ${TL_WRITER_CPP_SOURCE})
-  target_link_libraries(tl_writer_cpp PRIVATE tdtl)
-  target_include_directories(tl_writer_cpp PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+  add_library(tl_writer_cpp OBJECT ${TL_WRITER_CPP_SOURCE} $<TARGET_OBJECTS:tdtl>)
+  target_include_directories(tl_writer_cpp PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<TARGET_PROPERTY:tdtl,INCLUDE_DIRECTORIES>)
   if (TD_ENABLE_JNI)
     target_compile_definitions(tl_writer_cpp PRIVATE TD_ENABLE_JNI=1 GIT_COMMIT_HASH=${TD_GIT_COMMIT_HASH})
   endif()
@@ -149,8 +148,8 @@ if (NOT CMAKE_CROSSCOMPILING)
     target_compile_definitions(tl_writer_cpp PRIVATE DISABLE_HPP_DOCUMENTATION=1)
   endif()
 
-  add_executable(generate_mtproto ${TL_GENERATE_MTPROTO_SOURCE})
-  target_link_libraries(generate_mtproto PRIVATE tdtl tl_writer_cpp)
+  add_executable(generate_mtproto ${TL_GENERATE_MTPROTO_SOURCE} $<TARGET_OBJECTS:tdtl> $<TARGET_OBJECTS:tl_writer_cpp>)
+  target_include_directories(generate_mtproto PRIVATE $<TARGET_PROPERTY:tdtl,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tl_writer_cpp,INCLUDE_DIRECTORIES>)
   add_custom_target(tl_generate_mtproto
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
     COMMAND generate_mtproto
@@ -158,8 +157,8 @@ if (NOT CMAKE_CROSSCOMPILING)
     DEPENDS generate_mtproto tl_generate_tlo ${TLO_FILES}
   )
 
-  add_executable(generate_common ${TL_GENERATE_COMMON_SOURCE})
-  target_link_libraries(generate_common PRIVATE tdtl tl_writer_cpp)
+  add_executable(generate_common ${TL_GENERATE_COMMON_SOURCE} $<TARGET_OBJECTS:tdtl> $<TARGET_OBJECTS:tl_writer_cpp>)
+  target_include_directories(generate_common PRIVATE $<TARGET_PROPERTY:tdtl,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tl_writer_cpp,INCLUDE_DIRECTORIES>)
   add_custom_target(tl_generate_common
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
     COMMAND ${GENERATE_COMMON_CMD}
@@ -170,8 +169,8 @@ if (NOT CMAKE_CROSSCOMPILING)
     target_compile_definitions(generate_common PRIVATE TD_ENABLE_JNI=1)
   endif()
 
-  add_executable(generate_c ${TL_GENERATE_C_SOURCE})
-  target_link_libraries(generate_c PRIVATE tdtl)
+  add_executable(generate_c ${TL_GENERATE_C_SOURCE} $<TARGET_OBJECTS:tdtl>)
+  target_include_directories(generate_c PRIVATE $<TARGET_PROPERTY:tdtl,INCLUDE_DIRECTORIES>)
   add_custom_target(tl_generate_c
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
     COMMAND generate_c
@@ -179,12 +178,12 @@ if (NOT CMAKE_CROSSCOMPILING)
     DEPENDS generate_c tl_generate_tlo ${TD_API_TLO_FILE} ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl
   )
 
-  add_executable(td_generate_java_api ${TL_GENERATE_JAVA_SOURCE})
-  target_link_libraries(td_generate_java_api PRIVATE tdtl)
+  add_executable(td_generate_java_api ${TL_GENERATE_JAVA_SOURCE} $<TARGET_OBJECTS:tdtl>)
+  target_include_directories(td_generate_java_api PRIVATE $<TARGET_PROPERTY:tdtl,INCLUDE_DIRECTORIES>)
   target_compile_definitions(td_generate_java_api PRIVATE GIT_COMMIT_HASH=${TD_GIT_COMMIT_HASH})
 
-  add_executable(generate_json ${TL_GENERATE_JSON_SOURCE})
-  target_link_libraries(generate_json PRIVATE tdtl tdutils)
+  add_executable(generate_json ${TL_GENERATE_JSON_SOURCE} $<TARGET_OBJECTS:tdtl> $<TARGET_OBJECTS:tdutils>)
+  target_include_directories(generate_json PRIVATE $<TARGET_PROPERTY:tdtl,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES>)
   add_custom_target(tl_generate_json
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
     COMMAND generate_json
@@ -205,8 +204,8 @@ if (NOT CMAKE_CROSSCOMPILING)
       set(GENERATE_DOTNET_API_CMD td_generate_dotnet_api ${TD_API_TLO_FILE})
     endif()
 
-    add_executable(td_generate_dotnet_api generate_dotnet.cpp tl_writer_dotnet.h)
-    target_link_libraries(td_generate_dotnet_api PRIVATE tdtl)
+    add_executable(td_generate_dotnet_api generate_dotnet.cpp tl_writer_dotnet.h $<TARGET_OBJECTS:tdtl>)
+    target_include_directories(td_generate_dotnet_api PRIVATE $<TARGET_PROPERTY:tdtl,INCLUDE_DIRECTORIES>)
     add_custom_target(generate_dotnet_api
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
       COMMAND ${GENERATE_DOTNET_API_CMD}
@@ -215,6 +214,6 @@ if (NOT CMAKE_CROSSCOMPILING)
     )
   endif()
 
-  add_executable(remove_documentation remove_documentation.cpp)
-  target_link_libraries(remove_documentation PRIVATE tdtl)
+  add_executable(remove_documentation remove_documentation.cpp $<TARGET_OBJECTS:tdtl>)
+  target_include_directories(remove_documentation PRIVATE $<TARGET_PROPERTY:tdtl,INCLUDE_DIRECTORIES>)
 endif()

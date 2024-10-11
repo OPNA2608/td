@@ -21,7 +21,7 @@ set(SQLITE_SOURCE
 
 # all SQLite functions are moved to namespace tdsqlite3 by `sed -Ebi 's/sqlite3([^.]|$)/td&/g' *`
 
-add_library(tdsqlite STATIC ${SQLITE_SOURCE})
+add_library(tdsqlite OBJECT ${SQLITE_SOURCE})
 target_include_directories(tdsqlite PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(tdsqlite SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(tdsqlite PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
@@ -69,8 +69,3 @@ if (GCC OR CLANG)
 elseif (MSVC)
   target_compile_options(tdsqlite PRIVATE /wd4996)
 endif()
-
-install(TARGETS tdsqlite EXPORT TdStaticTargets
-  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-)

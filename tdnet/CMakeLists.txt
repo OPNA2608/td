@@ -58,10 +58,9 @@ if (APPLE_WATCH)
   set_source_files_properties(td/net/DarwinHttp.mm PROPERTIES COMPILE_FLAGS -fobjc-arc)
 endif()
 
-add_library(tdnet STATIC ${TDNET_SOURCE})
-target_include_directories(tdnet PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+add_library(tdnet OBJECT ${TDNET_SOURCE} $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tdactor>)
+target_include_directories(tdnet PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdactor,INCLUDE_DIRECTORIES>)
 target_include_directories(tdnet SYSTEM PRIVATE $<BUILD_INTERFACE:${OPENSSL_INCLUDE_DIR}>)
-target_link_libraries(tdnet PUBLIC tdutils tdactor)
 if (NOT EMSCRIPTEN)
   target_link_libraries(tdnet PRIVATE ${OPENSSL_SSL_LIBRARY})
 endif()
@@ -79,8 +78,3 @@ if (APPLE_WATCH)
   find_library(FOUNDATION_LIBRARY Foundation REQUIRED)
   target_link_libraries(tdnet PRIVATE ${FOUNDATION_LIBRARY})
 endif()
-
-install(TARGETS tdnet EXPORT TdStaticTargets
-  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-)

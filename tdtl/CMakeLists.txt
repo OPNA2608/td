@@ -24,5 +24,5 @@ set(TDTL_SOURCE
   td/tl/tl_writer.h
 )
 
-add_library(tdtl STATIC ${TDTL_SOURCE})
+add_library(tdtl OBJECT ${TDTL_SOURCE})
 target_include_directories(tdtl PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)

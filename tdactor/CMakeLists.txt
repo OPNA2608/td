@@ -42,16 +42,10 @@ set(TDACTOR_TEST_SOURCE
   PARENT_SCOPE
 )
 
-add_library(tdactor STATIC ${TDACTOR_SOURCE})
-target_include_directories(tdactor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_link_libraries(tdactor PUBLIC tdutils)
+add_library(tdactor OBJECT ${TDACTOR_SOURCE} $<TARGET_OBJECTS:tdutils>)
+target_include_directories(tdactor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES>)
 
 if (NOT CMAKE_CROSSCOMPILING)
-  add_executable(example example/example.cpp)
-  target_link_libraries(example PRIVATE tdactor)
+  add_executable(example example/example.cpp $<TARGET_OBJECTS:tdactor> $<TARGET_OBJECTS:tdutils>)
+  target_include_directories(example PRIVATE $<TARGET_PROPERTY:tdactor,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES>)
 endif()
-
-install(TARGETS tdactor EXPORT TdStaticTargets
-  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-)

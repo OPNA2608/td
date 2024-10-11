@@ -349,7 +349,7 @@ set(TDUTILS_TEST_SOURCE
   PARENT_SCOPE
 )
 
-add_library(tdutils STATIC ${TDUTILS_SOURCE})
+add_library(tdutils OBJECT ${TDUTILS_SOURCE})
 
 if (NOT CMAKE_CROSSCOMPILING AND TDUTILS_MIME_TYPE)
   add_dependencies(tdutils tdmime_auto)
@@ -409,18 +409,13 @@ if (ATOMICS_LIBRARIES)
   target_link_libraries(tdutils PUBLIC "${ATOMICS_LIBRARIES}")
 endif()
 
-install(TARGETS tdutils EXPORT TdStaticTargets
-  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-)
-
 if (TD_TEST_FOLLY AND ABSL_FOUND AND TDUTILS_USE_EXTERNAL_DEPENDENCIES)
   find_package(benchmark QUIET)
   find_package(folly QUIET)
   find_package(gflags QUIET)
 
   if (benchmark_FOUND AND folly_FOUND)
-    add_executable(benchmark-hashset test/hashset_benchmark.cpp)
-    target_link_libraries(benchmark-hashset PRIVATE tdutils benchmark::benchmark Folly::folly absl::flat_hash_map absl::hash)
+    add_executable(benchmark-hashset test/hashset_benchmark.cpp $<TARGET_OBJECTS:tdutils>)
+    target_link_libraries(benchmark-hashset PRIVATE benchmark::benchmark Folly::folly absl::flat_hash_map absl::hash)
   endif()
 endif()

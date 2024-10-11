@@ -1102,9 +1102,8 @@ set(MEMPROF_STAT_SOURCE
 # LIBRARIES
 
 # memprof - simple library for memory usage profiling
-add_library(memprof STATIC ${MEMPROF_SOURCE})
-target_include_directories(memprof PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_link_libraries(memprof PRIVATE tdutils)
+add_library(memprof OBJECT ${MEMPROF_SOURCE} $<TARGET_OBJECTS:tdutils>)
+target_include_directories(memprof PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES>)
 if (MEMPROF)
   target_compile_definitions(memprof PRIVATE -DUSE_MEMPROF=1)
   if (MEMPROF STREQUAL "SAFE")
@@ -1116,14 +1115,12 @@ if (MEMPROF)
   endif()
 endif()
 
-add_library(memprof_stat EXCLUDE_FROM_ALL STATIC ${MEMPROF_STAT_SOURCE})
+add_library(memprof_stat EXCLUDE_FROM_ALL OBJECT ${MEMPROF_STAT_SOURCE} $<TARGET_OBJECTS:tdutils>)
 target_include_directories(memprof_stat PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_link_libraries(memprof_stat PRIVATE tdutils)
 
 
-add_library(tdapi ${TL_TD_API_SOURCE})
-target_include_directories(tdapi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> INTERFACE $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
-target_link_libraries(tdapi PRIVATE tdutils)
+add_library(tdapi ${TL_TD_API_SOURCE} $<TARGET_OBJECTS:tdutils>)
+target_include_directories(tdapi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> INTERFACE $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}> PRIVATE $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES>)
 
 if (TD_ENABLE_JNI AND NOT ANDROID) # jni is available by default on Android
   if (NOT JNI_FOUND)
@@ -1138,10 +1135,10 @@ if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdapi tl_generate_common)
 endif()
 
-add_library(tdmtproto STATIC ${TD_MTPROTO_SOURCE})
-target_include_directories(tdmtproto PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
+add_library(tdmtproto OBJECT ${TD_MTPROTO_SOURCE} $<TARGET_OBJECTS:tdactor> $<TARGET_OBJECTS:tdnet> $<TARGET_OBJECTS:tdutils>)
+target_include_directories(tdmtproto PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}> $<TARGET_PROPERTY:tdactor,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdnet,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES>)
 target_include_directories(tdmtproto SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(tdmtproto PUBLIC tdactor tdnet tdutils PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
+target_link_libraries(tdmtproto PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
 if (WIN32)
   if (MINGW)
     target_link_libraries(tdmtproto PRIVATE ws2_32 mswsock crypt32)
@@ -1155,22 +1152,21 @@ endif()
 
 # tdcore - internal TDLib interface
 if (MSVC AND TD_ENABLE_LTO)
-  add_library(tdcore_part1 STATIC ${TDLIB_SOURCE_PART1})
-  target_include_directories(tdcore_part1 PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
-  target_link_libraries(tdcore_part1 PUBLIC tdapi tdnet tddb tdactor tdutils PRIVATE tdmtproto)
+  add_library(tdcore_part1 OBJECT ${TDLIB_SOURCE_PART1} $<TARGET_OBJECTS:tdnet> $<TARGET_OBJECTS:tddb> $<TARGET_OBJECTS:tdactor> $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tdmtproto>)
+  target_include_directories(tdcore_part1 PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}> $<TARGET_PROPERTY:tdnet,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tddb,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdactor,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdmtproto,INCLUDE_DIRECTORIES>)
+  target_link_libraries(tdcore_part1 PUBLIC tdapi)
 
-  add_library(tdcore_part2 STATIC ${TDLIB_SOURCE_PART2})
-  target_include_directories(tdcore_part2 PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
-  target_link_libraries(tdcore_part2 PUBLIC tdapi tdnet tddb tdactor tdutils PRIVATE tdmtproto)
+  add_library(tdcore_part2 OBJECT ${TDLIB_SOURCE_PART2} $<TARGET_OBJECTS:tdnet> $<TARGET_OBJECTS:tddb> $<TARGET_OBJECTS:tdactor> $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tdmtproto>)
+  target_include_directories(tdcore_part2 PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}> $<TARGET_PROPERTY:tdnet,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tddb,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdactor,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdmtproto,INCLUDE_DIRECTORIES>)
+  target_link_libraries(tdcore_part2 PUBLIC tdapi)
 
-  add_library(tdcore INTERFACE)
-  target_link_libraries(tdcore INTERFACE tdcore_part1 tdcore_part2)
+  add_library(tdcore OBJECT $<TARGET_OBJECTS:tdcore_part1> $<TARGET_OBJECTS:tdcore_part2>)
 
   set(TD_CORE_PART_TARGETS tdcore_part1 tdcore_part2)
 else()
-  add_library(tdcore STATIC ${TDLIB_SOURCE})
-  target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
-  target_link_libraries(tdcore PUBLIC tdapi tdnet tddb tdactor tdutils PRIVATE tdmtproto)
+  add_library(tdcore OBJECT ${TDLIB_SOURCE} $<TARGET_OBJECTS:tdnet> $<TARGET_OBJECTS:tddb> $<TARGET_OBJECTS:tdactor> $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tdmtproto>)
+  target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}> $<TARGET_PROPERTY:tdnet,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tddb,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdactor,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdmtproto,INCLUDE_DIRECTORIES>)
+  target_link_libraries(tdcore PUBLIC tdapi)
 
   set(TD_CORE_PART_TARGETS)
 endif()
@@ -1185,11 +1181,15 @@ if (NOT CMAKE_CROSSCOMPILING)
   endif()
 endif()
 
-add_library(tdclient td/telegram/Client.cpp td/telegram/Client.h td/telegram/Log.cpp td/telegram/Log.h)
+add_library(tdclient td/telegram/Client.cpp td/telegram/Client.h td/telegram/Log.cpp td/telegram/Log.h $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tdcore>)
 target_include_directories(tdclient PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  PRIVATE
+  $<TARGET_PROPERTY:tdactor,INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:tddb,INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES>
 )
-target_link_libraries(tdclient PUBLIC tdapi PRIVATE tdcore)
+target_link_libraries(tdclient PUBLIC tdapi)
 
 if (TD_ENABLE_DOTNET)
   add_library(tddotnet SHARED
@@ -1217,7 +1217,7 @@ if (TD_ENABLE_DOTNET)
 endif()
 
 # tdc - TDLib interface in pure C
-add_library(tdc STATIC EXCLUDE_FROM_ALL ${TL_C_SCHEME_SOURCE} td/telegram/td_c_client.cpp td/telegram/td_c_client.h)
+add_library(tdc OBJECT EXCLUDE_FROM_ALL ${TL_C_SCHEME_SOURCE} td/telegram/td_c_client.cpp td/telegram/td_c_client.h $<TARGET_OBJECTS:tdutils>)
 target_include_directories(tdc PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
@@ -1226,7 +1226,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdc tl_generate_c)
 endif()
 
-add_library(tdjson_private STATIC ${TL_TD_JSON_SOURCE} td/telegram/ClientJson.cpp td/telegram/ClientJson.h)
+add_library(tdjson_private OBJECT ${TL_TD_JSON_SOURCE} td/telegram/ClientJson.cpp td/telegram/ClientJson.h $<TARGET_OBJECTS:tdutils>)
 target_include_directories(tdjson_private PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
@@ -1243,8 +1243,7 @@ set(TD_JSON_SOURCE td/telegram/td_json_client.cpp td/telegram/td_log.cpp)
 
 include(GenerateExportHeader)
 
-add_library(tdjson SHARED ${TD_JSON_SOURCE} ${TD_JSON_HEADERS})
-target_link_libraries(tdjson PRIVATE tdjson_private)
+add_library(tdjson SHARED ${TD_JSON_SOURCE} ${TD_JSON_HEADERS} $<TARGET_OBJECTS:tdjson_private>)
 generate_export_header(tdjson EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h)
 target_include_directories(tdjson PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
@@ -1253,8 +1252,7 @@ if (APPLE)
   set_target_properties(tdjson PROPERTIES LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/tdclientjson_export_list")
 endif()
 
-add_library(tdjson_static STATIC ${TD_JSON_SOURCE} ${TD_JSON_HEADERS})
-target_link_libraries(tdjson_static PRIVATE tdjson_private)
+add_library(tdjson_static STATIC ${TD_JSON_SOURCE} ${TD_JSON_HEADERS} $<TARGET_OBJECTS:tdjson_private>)
 target_compile_definitions(tdjson_static PUBLIC TDJSON_STATIC_DEFINE)
 target_include_directories(tdjson_static PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
@@ -1263,13 +1261,13 @@ target_include_directories(tdjson_static PUBLIC
 # EXECUTABLES
 if (EMSCRIPTEN)
   set(TD_EMSCRIPTEN_SRC td/telegram/td_emscripten.cpp)
-  add_executable(${TD_EMSCRIPTEN} ${TD_EMSCRIPTEN_SRC})
+  add_executable(${TD_EMSCRIPTEN} ${TD_EMSCRIPTEN_SRC} $<TARGET_OBJECTS:tdactor>)
   target_include_directories(${TD_EMSCRIPTEN} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-  target_link_libraries(${TD_EMSCRIPTEN} PRIVATE tdjson_static tdactor)
+  target_link_libraries(${TD_EMSCRIPTEN} PRIVATE tdjson_static)
 endif()
 
 if (NOT CMAKE_CROSSCOMPILING)
-  add_executable(tg_cli td/telegram/cli.cpp ${TL_TD_JSON_SOURCE})
+  add_executable(tg_cli td/telegram/cli.cpp ${TL_TD_JSON_SOURCE} $<TARGET_OBJECTS:memprof> $<TARGET_OBJECTS:tdcore>)
 
   if (NOT READLINE_FOUND)
     find_package(Readline QUIET)
@@ -1294,7 +1292,7 @@ if (NOT CMAKE_CROSSCOMPILING)
       target_compile_definitions(tg_cli PRIVATE -DUSE_READLINE=1)
     endif()
   endif()
-  target_link_libraries(tg_cli PRIVATE memprof tdclient tdcore)
+  target_link_libraries(tg_cli PRIVATE tdclient)
   add_dependencies(tg_cli tl_generate_json)
 endif()
 
@@ -1313,7 +1311,7 @@ add_library(Td::TdJson ALIAS TdJson)
 add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 
 set(INSTALL_TARGETS tdjson TdJson)
-set(INSTALL_STATIC_TARGETS tdjson_static TdJsonStatic tdjson_private "${TD_CORE_PART_TARGETS}" tdcore tdmtproto)
+set(INSTALL_STATIC_TARGETS tdjson_static TdJsonStatic)
 if (BUILD_SHARED_LIBS)
   set(INSTALL_TARGETS ${INSTALL_TARGETS} tdclient TdStatic tdapi)
 else()
