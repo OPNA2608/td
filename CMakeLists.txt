@@ -1196,9 +1196,10 @@ if (TD_ENABLE_DOTNET)
     td/telegram/ClientDotNet.cpp
     td/telegram/LogDotNet.cpp
     ${TL_DOTNET_SCHEME_SOURCE}
+    $<TARGET_OBJECTS:tdutils>
   )
   set_target_properties(tddotnet PROPERTIES OUTPUT_NAME Telegram.Td)
-  target_link_libraries(tddotnet PRIVATE tdclient tdutils)
+  target_link_libraries(tddotnet PRIVATE tdclient)
   target_include_directories(tddotnet PUBLIC
     $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>
   )
@@ -1221,7 +1222,7 @@ add_library(tdc OBJECT EXCLUDE_FROM_ALL ${TL_C_SCHEME_SOURCE} td/telegram/td_c_c
 target_include_directories(tdc PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
-target_link_libraries(tdc PRIVATE tdclient tdutils)
+target_link_libraries(tdc PRIVATE tdclient)
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdc tl_generate_c)
 endif()
@@ -1229,8 +1230,9 @@ endif()
 add_library(tdjson_private OBJECT ${TL_TD_JSON_SOURCE} td/telegram/ClientJson.cpp td/telegram/ClientJson.h $<TARGET_OBJECTS:tdutils>)
 target_include_directories(tdjson_private PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
-target_link_libraries(tdjson_private PUBLIC tdclient tdutils)
+  $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>
+  $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES>)
+target_link_libraries(tdjson_private PUBLIC tdclient)
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdjson_private tl_generate_common tl_generate_json)
   if (TD_ENABLE_DOTNET)
@@ -1267,7 +1269,7 @@ if (EMSCRIPTEN)
 endif()
 
 if (NOT CMAKE_CROSSCOMPILING)
-  add_executable(tg_cli td/telegram/cli.cpp ${TL_TD_JSON_SOURCE} $<TARGET_OBJECTS:memprof> $<TARGET_OBJECTS:tdcore>)
+  add_executable(tg_cli td/telegram/cli.cpp ${TL_TD_JSON_SOURCE} $<TARGET_OBJECTS:memprof> $<TARGET_OBJECTS:tdnet> $<TARGET_OBJECTS:tddb> $<TARGET_OBJECTS:tdactor> $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tdmtproto> $<TARGET_OBJECTS:tdcore>)
 
   if (NOT READLINE_FOUND)
     find_package(Readline QUIET)
@@ -1292,7 +1294,8 @@ if (NOT CMAKE_CROSSCOMPILING)
       target_compile_definitions(tg_cli PRIVATE -DUSE_READLINE=1)
     endif()
   endif()
-  target_link_libraries(tg_cli PRIVATE tdclient)
+  target_include_directories(tg_cli PRIVATE $<TARGET_PROPERTY:tdactor,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdnet,INCLUDE_DIRECTORIES>)
+  target_link_libraries(tg_cli PRIVATE tdclient $<TARGET_PROPERTY:tdnet,LINK_LIBRARIES>)
   add_dependencies(tg_cli tl_generate_json)
 endif()
 
@@ -1334,23 +1337,8 @@ install(TARGETS ${INSTALL_STATIC_TARGETS} EXPORT TdStaticTargets
 # generate pkg-config files
 include(GeneratePkgConfig)
 
-generate_pkgconfig(tdutils "Telegram Library - Utils")
-generate_pkgconfig(tdactor "Telegram Library - Actor")
-generate_pkgconfig(tdnet "Telegram Library - Net")
-generate_pkgconfig(tdsqlite "Telegram Library - SQLite")
-generate_pkgconfig(tddb "Telegram Library - Database")
-if (MEMPROF)
-  # generate_pkgconfig(memprof "memprof - simple library for memory usage profiling")
-endif()
-generate_pkgconfig(tdmtproto "Telegram Library - MTProto implementation")
-generate_pkgconfig(tdcore "Telegram Library - Core")
 generate_pkgconfig(tdclient "Telegram Library - C++ Interface")
-if (TD_ENABLE_DOTNET)
-  # generate_pkgconfig(tddotnet "Telegram Library - C# Interface")
-endif()
-# generate_pkgconfig(tdc "Telegram Library - C interface")
 generate_pkgconfig(tdapi "Telegram Library - API")
-generate_pkgconfig(tdjson_private "Telegram Library - JSON interface (private)")
 generate_pkgconfig(tdjson "Telegram Library - JSON interface (shared)")
 generate_pkgconfig(tdjson_static "Telegram Library - JSON interface (static)")
 

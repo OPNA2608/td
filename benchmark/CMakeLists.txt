@@ -50,10 +50,11 @@ add_executable(bench_db bench_db.cpp $<TARGET_OBJECTS:tdactor> $<TARGET_OBJECTS:
 target_include_directories(bench_db PRIVATE $<TARGET_PROPERTY:tdactor,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tddb,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES>)
 target_link_libraries(bench_db PRIVATE $<TARGET_PROPERTY:tdnet,LINK_LIBRARIES>)
 
-add_executable(bench_tddb bench_tddb.cpp $<TARGET_OBJECTS:tdcore> $<TARGET_OBJECTS:tdcore> $<TARGET_OBJECTS:tddb> $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tdsqlite>)
+add_executable(bench_tddb bench_tddb.cpp $<TARGET_OBJECTS:tdactor> $<TARGET_OBJECTS:tdmtproto> $<TARGET_OBJECTS:tdnet> $<TARGET_OBJECTS:tdcore> $<TARGET_OBJECTS:tdcore> $<TARGET_OBJECTS:tddb> $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tdsqlite>)
 target_include_directories(bench_tddb PRIVATE $<TARGET_PROPERTY:tdcore,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tddb,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES>)
+target_link_libraries(bench_tddb PRIVATE $<TARGET_PROPERTY:tdsqlite,LINK_LIBRARIES>)
 
-add_executable(bench_misc bench_misc.cpp $<TARGET_OBJECTS:tdactor> $<TARGET_OBJECTS:tdcore> $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tddb>)
+add_executable(bench_misc bench_misc.cpp $<TARGET_OBJECTS:tdactor> $<TARGET_OBJECTS:tdmtproto> $<TARGET_OBJECTS:tdnet> $<TARGET_OBJECTS:tdcore> $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tddb> $<TARGET_OBJECTS:tdsqlite>)
 target_include_directories(bench_misc PRIVATE $<TARGET_PROPERTY:tdcore,INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:tdutils,INCLUDE_DIRECTORIES>)
 target_link_libraries(bench_misc PRIVATE tdapi $<TARGET_PROPERTY:tdutils,LINK_LIBRARIES> $<TARGET_PROPERTY:tddb,LINK_LIBRARIES>)
 

@@ -21,15 +21,17 @@ set(SQLITE_SOURCE
 
 # all SQLite functions are moved to namespace tdsqlite3 by `sed -Ebi 's/sqlite3([^.]|$)/td&/g' *`
 
+set(tdsqlite_LINK_LIBRARIES_PRIVATE "")
+
 add_library(tdsqlite OBJECT ${SQLITE_SOURCE})
 target_include_directories(tdsqlite PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(tdsqlite SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(tdsqlite PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
+list(APPEND tdsqlite_LINK_LIBRARIES_PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
 if (WIN32)
   if (MINGW)
-    target_link_libraries(tdsqlite PRIVATE ws2_32 mswsock crypt32)
+    list(APPEND tdsqlite_LINK_LIBRARIES_PRIVATE ws2_32 mswsock crypt32)
   else()
-    target_link_libraries(tdsqlite PRIVATE ws2_32 Mswsock Crypt32)
+    list(APPEND tdsqlite_LINK_LIBRARIES_PRIVATE ws2_32 Mswsock Crypt32)
   endif()
 endif()
 
@@ -69,3 +71,5 @@ if (GCC OR CLANG)
 elseif (MSVC)
   target_compile_options(tdsqlite PRIVATE /wd4996)
 endif()
+
+set(tdsqlite_LINK_LIBRARIES_PRIVATE ${tdsqlite_LINK_LIBRARIES_PRIVATE} PARENT_SCOPE)

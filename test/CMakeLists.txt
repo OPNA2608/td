@@ -36,9 +36,9 @@ set(TESTS_MAIN
 
 if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
   if (OPENSSL_FOUND)
-    add_executable(test-crypto EXCLUDE_FROM_ALL crypto.cpp)
+    add_executable(test-crypto EXCLUDE_FROM_ALL crypto.cpp $<TARGET_OBJECTS:tdutils> $<TARGET_OBJECTS:tdmtproto>)
     target_include_directories(test-crypto SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
-    target_link_libraries(test-crypto PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES} tdutils tdmtproto)
+    target_link_libraries(test-crypto PUBLIC ${tdutils_LINK_LIBRARIES_PUBLIC} ${tdmtproto_LINK_LIBRARIES_PUBLIC} PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES} ${tdutils_LINK_LIBRARIES_PRIVATE} ${tdmtproto_LINK_LIBRARIES_PRIVATE})
 
     if (WIN32)
       if (MINGW)
