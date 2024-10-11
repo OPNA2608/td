@@ -39,6 +39,7 @@ endif()
 include(PreventInSourceBuild)
 prevent_in_source_build()
 
+option(TD_ENABLE_FILTERED_INSTALL "Use \"ON\" to limit installation to files (libraries, dev files) relevant for the chosen \"BUILD_SHARED_LIBS\" value." OFF)
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")
 
@@ -1010,7 +1011,12 @@ add_library(Td::TdStatic ALIAS TdStatic)
 add_library(Td::TdJson ALIAS TdJson)
 add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 
-install(TARGETS tdjson TdJson tdjson_static TdJsonStatic tdjson_private tdclient tdcore tdapi TdStatic EXPORT TdTargets
+set(INSTALL_TARGETS tdjson TdJson tdclient tdapi TdStatic)
+if (NOT TD_ENABLE_FILTERED_INSTALL OR NOT BUILD_SHARED_LIBS)
+  set(INSTALL_TARGETS ${INSTALL_TARGETS} tdjson_static TdJsonStatic tdjson_private tdcore)
+endif()
+
+install(TARGETS ${INSTALL_TARGETS} EXPORT TdTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
