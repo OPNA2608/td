@@ -39,7 +39,11 @@ endif()
 include(PreventInSourceBuild)
 prevent_in_source_build()
 
+option(TD_INSTALL_VERSIONED "Enable installing into versioned locations/files" OFF)
 option(TD_INSTALL_STATIC_LIBRARIES "Enable installation of static libraries." ON)
+if (TD_INSTALL_VERSIONED)
+  set(TD_INSTALL_STATIC_LIBRARIES OFF CACHE BOOL "Static libraries are not supported for versioned installation" FORCE)
+endif()
 option(TD_INSTALL_SHARED_LIBRARIES "Enable installation of shared libraries." ON)
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")
@@ -1358,20 +1362,30 @@ add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 set(INSTALL_TARGETS tdjson TdJson)
 set(INSTALL_STATIC_TARGETS tdjson_static TdJsonStatic tdjson_private "${TD_CORE_PART_TARGETS}" tdcore tdmtproto tdclient TdStatic tdapi)
 
+set(INCLUDES_DIRECTORY "${CMAKE_INSTALL_INCLUDEDIR}")
+if (TD_INSTALL_VERSIONED)
+  set(INCLUDES_DIRECTORY "${INCLUDES_DIRECTORY}/${PROJECT_NAME}${PROJECT_VERSION}")
+endif()
+
+set(LIBS_DIRECTORY "${CMAKE_INSTALL_LIBDIR}")
+if (TD_INSTALL_VERSIONED)
+  set(LIBS_DIRECTORY "${LIBS_DIRECTORY}/${PROJECT_NAME}${PROJECT_VERSION}")
+endif()
+
 if (TD_INSTALL_SHARED_LIBRARIES)
   install(TARGETS ${INSTALL_TARGETS} EXPORT TdTargets
-    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    LIBRARY DESTINATION "${LIBS_DIRECTORY}"
+    ARCHIVE DESTINATION "${LIBS_DIRECTORY}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    INCLUDES DESTINATION "${INCLUDES_DIRECTORY}"
   )
 endif()
 
 if (TD_INSTALL_STATIC_LIBRARIES)
   install(TARGETS ${INSTALL_STATIC_TARGETS} EXPORT TdStaticTargets
-    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    LIBRARY DESTINATION "${LIBS_DIRECTORY}"
+    ARCHIVE DESTINATION "${LIBS_DIRECTORY}"
+    INCLUDES DESTINATION "${INCLUDES_DIRECTORY}"
   )
 endif()
 
@@ -1402,11 +1416,17 @@ if (TD_INSTALL_SHARED_LIBRARIES)
   generate_pkgconfig(tdjson "Telegram Library - JSON interface (shared)")
 endif()
 
+set(CMAKES_DIRECTORY_BASE "${CMAKE_INSTALL_LIBDIR}/cmake/Td")
+set(CMAKES_DIRECTORY "${CMAKES_DIRECTORY_BASE}")
+if (TD_INSTALL_VERSIONED)
+  set(CMAKES_DIRECTORY "${CMAKES_DIRECTORY}/${PROJECT_VERSION}")
+endif()
+
 if (TD_INSTALL_SHARED_LIBRARIES)
   install(EXPORT TdTargets
     FILE TdTargets.cmake
     NAMESPACE Td::
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Td"
+    DESTINATION "${CMAKES_DIRECTORY}"
   )
 endif()
 
@@ -1414,23 +1434,23 @@ if (TD_INSTALL_STATIC_LIBRARIES)
   install(EXPORT TdStaticTargets
     FILE TdStaticTargets.cmake
     NAMESPACE Td::
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Td"
+    DESTINATION "${CMAKES_DIRECTORY}"
   )
 endif()
 
 if (TD_INSTALL_SHARED_LIBRARIES OR TD_INSTALL_STATIC_LIBRARIES)
   # Install tdjson/tdjson_static:
-  install(FILES ${TD_JSON_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
+  install(FILES ${TD_JSON_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h" DESTINATION "${INCLUDES_DIRECTORY}/td/telegram")
 endif()
 if (TD_INSTALL_STATIC_LIBRARIES)
   # Install tdclient:
-  install(FILES td/telegram/Client.h td/telegram/Log.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
+  install(FILES td/telegram/Client.h td/telegram/Log.h DESTINATION "${INCLUDES_DIRECTORY}/td/telegram")
   # Install tdapi:
-  install(FILES td/tl/TlObject.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/tl")
-  install(FILES "${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.h" "${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
+  install(FILES td/tl/TlObject.h DESTINATION "${INCLUDES_DIRECTORY}/td/tl")
+  install(FILES "${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.h" "${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.hpp" DESTINATION "${INCLUDES_DIRECTORY}/td/telegram")
 endif()
 if (TD_ENABLE_JNI)
-  install(FILES td/tl/tl_jni_object.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/tl")
+  install(FILES td/tl/tl_jni_object.h DESTINATION "${INCLUDES_DIRECTORY}/td/tl")
 endif()
 if (MSVC AND VCPKG_TOOLCHAIN)
   install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/" DESTINATION "${CMAKE_INSTALL_BINDIR}" FILES_MATCHING PATTERN "*.dll")
@@ -1442,8 +1462,19 @@ write_basic_package_version_file("TdConfigVersion.cmake"
   COMPATIBILITY ExactVersion
 )
 install(FILES "TdConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/TdConfigVersion.cmake"
-  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Td"
+  DESTINATION "${CMAKES_DIRECTORY}"
 )
+
+if (TD_INSTALL_VERSIONED)
+  install(FILES "MultiversionShimConfig.cmake"
+    DESTINATION "${CMAKES_DIRECTORY_BASE}"
+    RENAME "TdConfig.cmake"
+  )
+  install(FILES "MultiversionShimConfigVersion.cmake"
+    DESTINATION "${CMAKES_DIRECTORY_BASE}"
+    RENAME "TdConfigVersion.cmake"
+  )
+endif()
 
 # Add SOVERSION to shared libraries
 set_property(TARGET tdjson PROPERTY SOVERSION "${TDLib_VERSION}")
